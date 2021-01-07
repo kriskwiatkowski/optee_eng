@@ -1,0 +1,137 @@
+[ ca ]
+# `man ca`
+default_ca = CA_default
+
+[ CA_default ]
+# Directory and file locations.
+dir               = .
+certs             = $dir/certs
+crl_dir           = $dir/crl
+new_certs_dir     = $dir/newcerts
+database          = $dir/index.txt
+serial            = $dir/serial
+RANDFILE          = $dir/private/.rand
+
+# The root key and root certificate.
+private_key       = $dir/root.key
+certificate       = $dir/root.pem
+
+# For certificate revocation lists.
+crlnumber         = $dir/crlnumber
+crl               = $dir/crl/intermediate.crl.pem
+crl_extensions    = crl_ext
+default_crl_days  = 30
+
+# SHA-1 is deprecated, so use SHA-2 instead.
+default_md        = sha256
+
+name_opt          = ca_default
+cert_opt          = ca_default
+default_days      = 9999
+preserve          = no
+policy            = policy_loose
+
+[ policy_strict ]
+# The root CA should only sign intermediate certificates that match.
+# See the POLICY FORMAT section of `man ca`.
+countryName             = match
+stateOrProvinceName     = match
+organizationName        = match
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ policy_loose ]
+# Allow the intermediate CA to sign a more diverse range of certificates.
+# See the POLICY FORMAT section of the `ca` man page.
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+# Options for the `req` tool (`man req`).
+default_bits        = 4096
+distinguished_name  = req_distinguished_name
+string_mask         = utf8only
+
+[ req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+stateOrProvinceName             = State or Province Name (full name)
+localityName                    = Locality Name (eg, city)
+organizationalUnitName          = Organizational Unit Name (eg, section)
+commonName                      = Common Name
+
+stateOrProvinceName_default     = City of London
+countryName_default             = UK
+localityName_default            = London
+organizationalUnitName_default  = Among Bytes, Lab Testng
+commonName_default              = www.pqsdk.com
+commonName_max                  = 64
+
+[ v3_ca ]
+# Extensions for a typical CA (`man x509v3_config`).
+subjectKeyIdentifier        = hash
+authorityKeyIdentifier      = keyid:always,issuer
+basicConstraints            = critical, CA:true
+keyUsage                    = critical, digitalSignature, cRLSign, keyCertSign
+
+[ v3_intermediate_ca ]
+# Extensions for a typical intermediate CA (`man x509v3_config`).
+subjectKeyIdentifier        = hash
+authorityKeyIdentifier      = keyid:always,issuer
+basicConstraints            = critical, CA:true
+keyUsage                    = critical, digitalSignature, cRLSign, keyCertSign
+extendedKeyUsage            = serverAuth, clientAuth
+
+[ usr_cert ]
+# Extensions for client certificates (`man x509v3_config`).
+basicConstraints        = CA:FALSE
+nsCertType              = client, email
+nsComment               = 'Among Bytes, Lab Testng, Intermediate Cert'
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid,issuer
+keyUsage                = critical, nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage        = clientAuth, emailProtection
+
+[ server_cert ]
+# Extensions for server certificates (`man x509v3_config`).
+basicConstraints        = CA:FALSE
+nsCertType              = server
+nsComment               = 'Among Bytes, Lab Testng, TLS Server'
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid,issuer:always
+keyUsage                = critical, digitalSignature, keyEncipherment
+extendedKeyUsage        = serverAuth
+subjectAltName          = @alt_names
+
+[ client_cert ]
+# Extensions for server certificates (`man x509v3_config`).
+basicConstraints        = CA:FALSE
+nsCertType              = client, email
+nsComment               = 'Among Bytes, Lab Testng, TLS Client'
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid,issuer
+keyUsage                = critical, nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage        = clientAuth, emailProtection
+
+[ crl_ext ]
+# Extension for CRLs (`man x509v3_config`).
+authorityKeyIdentifier  = keyid:always
+
+[ ocsp ]
+# Extension for OCSP signing certificates (`man ocsp`).
+basicConstraints        = CA:FALSE
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid,issuer
+keyUsage                = critical, digitalSignature
+extendedKeyUsage        = critical, OCSPSigning
+
+[alt_names]
+DNS.1   = www.pqsdk.com
+DNS.2   = iot.pqsdk.com
+DNS.3   = vpn.pqsdk.com
+DNS.4   = *.pqsdk.com

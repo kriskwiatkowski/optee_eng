@@ -63,26 +63,9 @@ enum {
 #define ERR_R_LIST(_)                                            \
     _(SUCCESS, "Success")                                        \
     _(GENERIC, "Generic")                                        \
-    _(CANNOT_ALLOCATE_KEY, "key allocation")                     \
-    _(BAD_SIGNATURE, "bad signature")                            \
-    _(CANNOT_SIGN, "signing operation failed")                   \
-    _(CANNOT_GEN_KEY, "failed to generate keys")                 \
-    _(INVALID_ENCODING, "invalid encoding")                      \
-    _(INVALID_KEY, "invalid key")                                \
-    _(INVALID_PEER_KEY, "invalid peer key")                      \
-    _(WRONG_PRVKEY_BUF, "invalid private key")                   \
-    _(WRONG_PUBKEY_BUF, "invalid public key")                    \
-    _(KEYS_NOT_SET, "keys not set")                              \
-    _(MISSING_NID_DATA, "failed to get nid_data struct pointer") \
-    _(MISSING_PRIVATE_KEY, "missing private key")                \
-    _(RNG_FAILED, "random number generation failed")             \
     _(BAD_PARAMETERS, "bad parameters found")                    \
-    _(PASSED_NULL_PARAMETER, "null pointer provided")            \
     _(NOT_SUPPORTED, "not supported")                            \
-    _(WRONG_LENGTH, "wrong length")                              \
-    _(OUT_OF_MEMORY, "not enough memory")                        \
-    _(INTERNAL, "internal error")                                \
-    _(VALUE_NOT_SET, "value not set")
+    _(INTERNAL, "internal error")
 
 enum {
     TEE_R_NONE = 100,

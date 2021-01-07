@@ -10,44 +10,35 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "~/.cmake/Modules")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-set(OPTEE_ENGINE_INSTALL_DIR /usr/local/softs)
+set(OPTEE_ENGINE_INSTALL_DIR /opt)
 
-# --- Configuration ---
-
-# Arch settings
-if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-  set(CLANG 1)
+# OP-TEE
+if (NOT OPTEE_BUILD_DIR)
+    message(FATAL_ERROR "Must specify -DOPTEE_BUILD_DIR")
 endif()
-
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-   set(CMAKE_C_COMPILER /usr/bin/cc CACHE PATH "" FORCE)
-   set(CMAKE_CXX_COMPILER /usr/bin/c++ CACHE PATH "" FORCE)
-   set(OPTEE_ENG_LD_FLAGS "-Wl")
-else()
-   set(OPTEE_ENG_LD_FLAGS "-W")
+if (NOT PLATFORM)
+    message(FATAL_ERROR "Must specify -DPLATFORM=V where V is either qemu or hikey960")
 endif()
+set(OPTEE_ROOT_DIR ${OPTEE_BUILD_DIR})
+set(OPTEE_REE_LIB_DIR ${OPTEE_ROOT_DIR}/out-br/target/usr/lib)
+set(OPTEE_REE_INCLUDE_DIR ${OPTEE_ROOT_DIR}/optee_client/public)
+set(CMAKE_C_COMPILER ${OPTEE_ROOT_DIR}/toolchains/aarch64/bin/aarch64-linux-gnu-gcc CACHE PATH "" FORCE)
+set(CMAKE_CXX_COMPILER ${OPTEE_ROOT_DIR}/toolchains/aarch64/bin/aarch64-linux-gnu-g++ CACHE PATH "" FORCE)
 
-# Build OpenSSL if not provided, otherwise define
-# OpenSSL_ssl_shared and OpenSSL_crypto_shared
-if (BUILD_OPENSSL)
-	add_subdirectory(3rd/openssl-cmake)
-else()
-	if (NOT OPENSSL_INSTALL_DIR)
-		message(FATAL_ERROR "Must specify -DOPENSSL_INSTALL_DIR")
-	endif()
-	set(OPENSSL_BUILD_INSTALL_ROOT ${OPENSSL_INSTALL_DIR})
-	set(OPENSSL_PREFIX_OPENSSLDIR ${CMAKE_INSTALL_PREFIX}${OPTEE_ENGINE_INSTALL_DIR}/openssl)
-	include(3rd/openssl-cmake/libdefs.cmake)
-endif()
+# 3rd Parties
 
+# OpenSSL config targets
+set(OPENSSL_CONFIG_CMD "Configure" CACHE STRING "Command used to configure OpenSSL (default ./config)")
+set(OPENSSL_CONFIG_TARGET "linux-aarch64" CACHE STRING "Platform for which OpenSSL should be compiled (default native)")
+
+add_subdirectory(3rd/openssl-cmake)
+# Gtest
+add_subdirectory(3rd/gtest)
 get_property(OPENSSL_INSTALL_DIR GLOBAL PROPERTY openssl_build_install_dir_property)
 set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
 
 # Trusted Application sources
 set(TA_DELEGATOR_ROOT ${CMAKE_SOURCE_DIR}/src/ta)
-
-# Build gtest
-add_subdirectory(3rd/gtest)
 
 # Global configuration
 set(C_CXX_FLAGS "\
@@ -60,12 +51,6 @@ set(C_CXX_FLAGS "\
     -Wundef \
     -Wunused-result")
 
-if(CLANG)
-	set(C_CXX_FLAGS
-		"-Wconditional-uninitialized \
-		-Wmissing-variable-declarations")
-endif()
-
 # Control Debug/Release mode
 IF(${CMAKE_BUILD_TYPE} MATCHES "Debug")
 	set(C_CXX_FLAGS "${C_CXX_FLAGS} -g3 -O0 -Wno-unused")
@@ -73,22 +58,8 @@ else()
 	set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3")
 endif()
 
-# Add possibility to build Client Application with ASAN
-if(ASAN)
-	set(CLANG 1)
-	set(C_CXX_FLAGS "${C_CXX_FLAGS} -fsanitize=undefined,address,leak -fno-omit-frame-pointer")
-	set(LDFLAGS "${LDFLAGS} -fsanitize=undefined,address,leak")
-endif()
-
 set(CMAKE_C_FLAGS ${C_CXX_FLAGS})
 set(CMAKE_CXX_FLAGS ${C_CXX_FLAGS})
-if(CLANG)
-	if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang" OR NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		message(FATAL_ERROR "Clang required for this build")
-	endif()
-
-    set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wnewline-eof -fcolor-diagnostics")
-endif()
 
 # --- Build targets ---
 
@@ -133,8 +104,99 @@ target_link_directories(
 target_link_libraries(
     optee_eng
     OpenSSL_crypto_shared
+    teec
     ${CMAKE_DL_LIBS})
 
 IF(${CMAKE_BUILD_TYPE} MATCHES "Debug")
     target_compile_definitions(optee_eng PRIVATE BUILD_DEBUG)
 endif()
+
+# Key management app
+add_executable(
+    optee_keymgnt
+    src/optee_engine/keymgnt.c
+)
+target_include_directories(
+    optee_keymgnt PRIVATE
+    ${OPENSSL_INCLUDE_DIR}
+    ${OPTEE_REE_INCLUDE_DIR}
+    ${TA_DELEGATOR_ROOT}/include)
+target_link_directories(
+    optee_keymgnt PRIVATE
+    ${OPTEE_REE_LIB_DIR})
+target_link_libraries(
+    optee_keymgnt
+    OpenSSL_crypto_shared
+    teec
+    ${OPTEE_ENG_LD_FLAGS}
+    ${CMAKE_DL_LIBS})
+
+ExternalProject_Add(optee_eng_ta
+    SOURCE_DIR ${TA_DELEGATOR_ROOT}
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND OPTEE_ROOT=${OPTEE_BUILD_DIR} O=${CMAKE_CURRENT_BINARY_DIR} ${MAKE_PROGRAM}
+    BUILD_IN_SOURCE TRUE
+    INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/ta
+    INSTALL_COMMAND ""
+    BUILD_ALWAYS TRUE
+)
+
+# Google benchmark settings
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+# Target for benchmark - it also builds gtest library
+set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "Enable testing of the benchmark library." FORCE)
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Disable benchmark tests" FORCE)
+set(GOOGLETEST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/3rd/gtest" CACHE PATH "Path to the gtest sources" FORCE)
+set(BENCHMARK_OS_WINDOWS OFF CACHE BOOL "" FORCE)
+set(HAVE_POSIX_REGEX OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_EXCEPTIONS OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+add_subdirectory(3rd/gbench)
+add_executable(
+    speed
+    src/optee_engine/speed.cc)
+target_include_directories(
+    speed PRIVATE
+    ${OPENSSL_INCLUDE_DIR}
+)
+target_link_libraries(
+    speed
+    gtest
+    pthread
+    OpenSSL_crypto_shared
+    benchmark::benchmark)
+
+# Install copies needed files to the buildroot overlay.
+
+# OpenVPN config
+install(FILES ${PROJECT_SOURCE_DIR}/cfg/openvpn_cli.conf
+    DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/etc/openvpn/
+    RENAME client.conf)
+install(FILES
+    ${PROJECT_SOURCE_DIR}/cfg/certs/ca.cert
+    ${PROJECT_SOURCE_DIR}/cfg/certs/client.cert
+    ${PROJECT_SOURCE_DIR}/cfg/certs/client.key
+    DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/etc/openvpn/certs/)
+# OpenSSL config
+install(FILES ${PROJECT_SOURCE_DIR}/cfg/openssl_optee.cnf
+    DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/etc/ssl/
+    RENAME openssl.cnf)
+# OpTEE engine
+install(TARGETS optee_eng
+    LIBRARY DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/opt/
+    PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ)
+# TA
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/8aaaf200-2450-11e4-0060-0dc0ffee0000.ta
+    DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/lib/optee_armtz)
+# Must be empty and have same name as the TEE key ID
+install(FILES /dev/null
+    DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/etc/openvpn/
+    RENAME vpn.testlab.com)
+# Key management app
+install(TARGETS optee_keymgnt
+    RUNTIME DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/usr/bin/
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ WORLD_READ)
+# Speed app
+install(TARGETS speed
+    RUNTIME DESTINATION ${OPTEE_ROOT_DIR}/build/br-ext/board/${PLATFORM}/overlay/usr/bin/
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ WORLD_READ)

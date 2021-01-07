@@ -4,3 +4,6 @@
 [submodule "3rd/openssl"]
 	path = 3rd/openssl
 	url = https://github.com/openssl/openssl.git
+[submodule "3rd/gbench"]
+	path = 3rd/gbench
+	url = git@github.com:henrydcase/benchmark.git

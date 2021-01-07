@@ -12,10 +12,10 @@ EVP_PKEY* OPTEE_ENG_load_private_key(
     void *		callback_data);
 
 int OPTEE_ENG_evp_cb_sign(
-	EVP_PKEY_CTX *       ctx,
-	unsigned char *      sig,
-	size_t *             sigsz,
-	const unsigned char *tb,
-	size_t               tbsz);
+	EVP_PKEY_CTX *      ctx,
+	uint8_t *      		sig,
+	size_t *            sigsz,
+	const uint8_t 		*tb,
+	size_t              tbsz);
 
 #endif // BACK_H_

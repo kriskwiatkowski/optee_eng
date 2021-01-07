@@ -1,0 +1,48 @@
+diff --git a/common.mk b/common.mk
+index 169b99c..361405f 100644
+--- a/common.mk
++++ b/common.mk
+@@ -74,23 +74,23 @@ endif
+ # # Then in QEMU, run:
+ # # $ mount -t 9p -o trans=virtio host <mount_point>
+ # # Or enable QEMU_VIRTFS_AUTOMOUNT
+-QEMU_VIRTFS_ENABLE	?= n
+-QEMU_VIRTFS_HOST_DIR	?= $(ROOT)
++QEMU_VIRTFS_ENABLE     ?= n
++QEMU_VIRTFS_HOST_DIR   ?= $(ROOT)
+ 
+ # Persistent Secure Storage via shared folder
+ # # Set QEMU_PSS_ENABLE to 'y' and adjust QEMU_PSS_HOST_DIR
+ # # Then in QEMU, run:
+ # # $ mount -t 9p -o trans=virtio secure /data/tee
+ # # Or enable QEMU_PSS_AUTOMOUNT
+-QEMU_PSS_ENABLE		?= n
+-QEMU_PSS_HOST_DIR	?= /tmp/qemu-data-tee
++QEMU_PSS_ENABLE		?= y
++QEMU_PSS_HOST_DIR	?= /tmp/
+ 
+ # Warning: when these variables are modified, you must remake the buildroot
+ # target directory. This can be done without rebuilding everything as follows:
+ # rm -rf ../out-br/target; find ../out-br/ -name .stamp_target_installed | xargs rm
+ # make <flags> run
+-QEMU_VIRTFS_AUTOMOUNT	?= n
+-QEMU_PSS_AUTOMOUNT	?= n
++QEMU_VIRTFS_AUTOMOUNT	?= y
++QEMU_PSS_AUTOMOUNT	?= y
+ # Mount point for the shared directory inside QEMU
+ # Used by the post-build script, this is written to /etc/fstab as the mount
+ # point of the shared directory
+@@ -246,9 +246,12 @@ BUILDROOT_TOOLCHAIN=toolchain-aarch$(COMPILE_NS_USER)-legacy
+ endif
+ endif
+ 
++BR2_PACKAGE_OPENSSL ?= y
++BR2_PACKAGE_OPENVPN ?= y
+ BR2_PACKAGE_LIBOPENSSL ?= y
++BR2_PACKAGE_LIBOPENSSL_BIN ?= y
++BR2_PACKAGE_LIBOPENSSL_ENGINES ?= y
+ BR2_PACKAGE_MMC_UTILS ?= y
+-BR2_PACKAGE_OPENSSL ?= y
+ BR2_PACKAGE_OPTEE_BENCHMARK_EXT ?= $(CFG_TEE_BENCHMARK)
+ BR2_PACKAGE_OPTEE_BENCHMARK_EXT_SITE ?= $(BENCHMARK_APP_PATH)
+ BR2_PACKAGE_OPTEE_CLIENT_EXT_SITE ?= $(OPTEE_CLIENT_PATH)

@@ -10,7 +10,7 @@
 #ifdef OPTEE_ENG_ENGINE_ID
 #undef OPTEE_ENG_ENGINE_ID
 #endif
-#define OPTEE_ENG_ENGINE_ID "optee_eng"
+#define OPTEE_ENG_ENGINE_ID "optee"
 
 #ifdef OPTEE_ENG_ENGINE_NAME
 #undef OPTEE_ENG_ENGINE_NAME
@@ -18,7 +18,6 @@
 #define OPTEE_ENG_ENGINE_NAME "OpTEE OpenSSL ENGINE."
 
 BIO *bio_err = NULL;
-static bool is_initialized = false;
 static int lib_code = 0;
 static int error_loaded = 0;
 
@@ -118,11 +117,6 @@ static int OPTEE_ENG_pkey_meths(
     return 1;
 }
 
-static int OPTEE_ENG_register_engine(ENGINE *e) {
-    ENGINE_set_pkey_meths(e, OPTEE_ENG_pkey_meths);
-    return 1;
-}
-
 static int OPTEE_ENG_bind(ENGINE *e, const char *id) {
     if (!ERR_load_crypto_strings()) {
         fprintf(stderr, "ERR_load_crypto_strings failed\n");
@@ -130,7 +124,7 @@ static int OPTEE_ENG_bind(ENGINE *e, const char *id) {
     }
 
     if (!OPENSSL_init_crypto(
-        OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_ENGINE_DYNAMIC, NULL)) {
+        OPENSSL_INIT_ENGINE_DYNAMIC, NULL)) {
         fprintf(stderr, "OPENSSL_init_crypto failed\n");
         return 0;
     }
@@ -138,7 +132,7 @@ static int OPTEE_ENG_bind(ENGINE *e, const char *id) {
     NOP(id);
     TEST_P(OPTEE_ENG_err_strings());
 
-    /* we set logs here to get potential error traces
+    /* We set logs here to get potential error traces
      * from library initialization. */
     unsigned level = TEE_DEFAULT_LOG_LEVEL;
     (void)get_env_log_level(&level);
@@ -150,7 +144,7 @@ static int OPTEE_ENG_bind(ENGINE *e, const char *id) {
     TEST_P(ENGINE_set_name(e, OPTEE_ENG_ENGINE_NAME));
     TEST_P(ENGINE_set_destroy_function(e, OPTEE_ENG_destroy));
     TEST_P(ENGINE_set_load_privkey_function(e, OPTEE_ENG_load_private_key));
-    TEST_P(OPTEE_ENG_register_engine(e));
+    TEST_P(ENGINE_set_pkey_meths(e, OPTEE_ENG_pkey_meths));
     debug("Registration done");
 
     return 1;
