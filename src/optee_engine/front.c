@@ -15,7 +15,7 @@
 #ifdef OPTEE_ENG_ENGINE_NAME
 #undef OPTEE_ENG_ENGINE_NAME
 #endif
-#define OPTEE_ENG_ENGINE_NAME "OpTEE OpenSSL ENGINE."
+#define OPTEE_ENG_ENGINE_NAME "OpTEE OpenSSL ENGINE (NO TEE VERSION)."
 
 BIO *bio_err = NULL;
 static bool is_initialized = false;
@@ -113,7 +113,7 @@ static int OPTEE_ENG_pkey_meths(
     EVP_PKEY_meth_copy(new_meth, orig_meth);
 
     // Bind function pointers of PKEY and ASN1 methods
-    EVP_PKEY_meth_set_sign(new_meth, 0, OPTEE_ENG_evp_cb_sign);
+    EVP_PKEY_meth_set_digestsign(new_meth, OPTEE_ENG_evp_cb_sign);
     *pmeth = new_meth;
     return 1;
 }
@@ -129,11 +129,15 @@ static int OPTEE_ENG_bind(ENGINE *e, const char *id) {
         return 0;
     }
 
+    /*
+    OZAPTF: locks
+
     if (!OPENSSL_init_crypto(
         OPENSSL_INIT_LOAD_CONFIG | OPENSSL_INIT_ENGINE_DYNAMIC, NULL)) {
         fprintf(stderr, "OPENSSL_init_crypto failed\n");
         return 0;
     }
+    */
 
     NOP(id);
     TEST_P(OPTEE_ENG_err_strings());

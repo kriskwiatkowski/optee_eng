@@ -67,7 +67,7 @@ end:
 }
 
 int OPTEE_ENG_evp_cb_sign(
-    EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *sigsz,
+    EVP_MD_CTX *ctx, unsigned char *sig, size_t *sigsz,
     const unsigned char *tb, size_t tbsz) {
     ENTRY;
 
@@ -99,7 +99,7 @@ int OPTEE_ENG_evp_cb_sign(
         goto end;
     }
 
-    pkey = EVP_PKEY_CTX_get0_pkey(ctx);
+    //pkey = EVP_PKEY_CTX_get0_pkey(ctx);
     TEST_NULL(pkey);
 
     if (EVP_PKEY_type(EVP_PKEY_id(pkey)) != EVP_PKEY_EC) {
@@ -108,6 +108,7 @@ int OPTEE_ENG_evp_cb_sign(
         goto end;
     }
 
+#if 0
     if (!EVP_PKEY_CTX_get_signature_md(ctx, &md) ||
         (md != EVP_sha256())) {
         // We only support ECDSA+P-256+SHA256
@@ -115,7 +116,7 @@ int OPTEE_ENG_evp_cb_sign(
         ret = -2;
         goto end;
     }
-
+#endif
     ec = EVP_PKEY_get1_EC_KEY(pkey);
     TEST_NULL(ec);
 
@@ -230,10 +231,17 @@ EVP_PKEY* OPTEE_ENG_load_private_key(
     uint8_t key_digest[32] = {0};
     int ret = 0;
 
+    char key_path[2048] = {0};
+    const char *path = getenv("PRV_KEY");
+    memcpy(key_path, path, strlen(path));
+    key_path[strlen(path)] = '/';
+    memcpy(key_path+strlen(path)+1, key_name, strlen(key_name));
+    key_path[strlen(path)+strlen(key_name)+1] = '\0';
+
     /* read key from file */
     // OZAPTF
     TEST_OSSL(
-        parse_key_from_file(getenv("PRV_KEY")),
+        parse_key_from_file(key_path),
         BAD_PARAMETERS);
 
     // Calculate key-id used internally. It is a sha256
