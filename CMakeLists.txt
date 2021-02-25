@@ -29,16 +29,17 @@ endif()
 
 # Build OpenSSL if not provided, otherwise define
 # OpenSSL_ssl_shared and OpenSSL_crypto_shared
-if (BUILD_OPENSSL)
-	add_subdirectory(3rd/openssl-cmake)
-else()
-	if (NOT OPENSSL_INSTALL_DIR)
-		message(FATAL_ERROR "Must specify -DOPENSSL_INSTALL_DIR")
-	endif()
-	set(OPENSSL_BUILD_INSTALL_ROOT ${OPENSSL_INSTALL_DIR})
-	set(OPENSSL_PREFIX_OPENSSLDIR ${CMAKE_INSTALL_PREFIX}${OPTEE_ENGINE_INSTALL_DIR}/openssl)
-	include(3rd/openssl-cmake/libdefs.cmake)
-endif()
+#if (BUILD_OPENSSL)
+#	add_subdirectory(3rd/openssl-cmake)
+#else()
+#	#	if (NOT OPENSSL_INSTALL_DIR)
+#	#	message(FATAL_ERROR "Must specify -DOPENSSL_INSTALL_DIR")
+#	#endif()
+#	set(OPENSSL_BUILD_INSTALL_ROOT ${OPENSSL_INSTALL_DIR})
+#	set(OPENSSL_PREFIX_OPENSSLDIR ${CMAKE_INSTALL_PREFIX}${OPTEE_ENGINE_INSTALL_DIR}/openssl)
+#	include(3rd/openssl-cmake/libdefs.cmake)
+#endif()
+find_package(OpenSSL)
 
 get_property(OPENSSL_INSTALL_DIR GLOBAL PROPERTY openssl_build_install_dir_property)
 set(OPENSSL_INCLUDE_DIR ${OPENSSL_INSTALL_DIR}/include)
@@ -132,7 +133,7 @@ target_link_directories(
 
 target_link_libraries(
     optee_eng
-    OpenSSL_crypto_shared
+    crypto
     ${CMAKE_DL_LIBS})
 
 IF(${CMAKE_BUILD_TYPE} MATCHES "Debug")
